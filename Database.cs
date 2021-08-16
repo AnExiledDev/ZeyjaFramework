@@ -1,6 +1,7 @@
 ﻿using MySql.Data.MySqlClient;
 using SqlKata.Compilers;
 using SqlKata.Execution;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ZeyjaFramework.Config;
@@ -48,6 +49,11 @@ namespace ZeyjaFramework
         /// <returns>A QueryFactory.</returns>
         private QueryFactory InitializeConnection(bool andReserve = false)
         {
+            if ((AvailableConnections.Count + ReservedConnections.Count) >= Config.MaxConnections)
+            {
+                throw new Exception("Reached max database connections.");
+            }
+
             QueryFactory newConn = new QueryFactory(new MySqlConnection(Config.GetConnectionString()), new MySqlCompiler());
 
             if (andReserve) { ReservedConnections.Add(newConn); }
