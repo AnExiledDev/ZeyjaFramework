@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ZeyjaFramework
 {
-    class Config
+    class Configuration
     {
     }
 }
