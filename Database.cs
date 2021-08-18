@@ -13,10 +13,10 @@ namespace ZeyjaFramework
     /// </summary>
     public class Database
     {
-        private readonly DatabaseConfig Config;
+        private readonly DatabaseConfig _config;
 
-        private readonly List<QueryFactory> AvailableConnections = new();
-        private readonly List<QueryFactory> ReservedConnections = new();
+        private readonly List<QueryFactory> _availableConnections = new();
+        private readonly List<QueryFactory> _reservedConnections = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Database"/> class.
@@ -25,7 +25,7 @@ namespace ZeyjaFramework
         /// <param name="config">The <see cref="DatabaseConfig"/>.</param>
         public Database(DatabaseConfig config = null)
         {
-            Config = config;
+            _config = config;
         }
 
         /// <summary>
@@ -34,7 +34,7 @@ namespace ZeyjaFramework
         /// </summary>
         /// 
         /// <returns>A query factory connection.</returns>
-        public QueryFactory DB()
+        public QueryFactory Db()
         {
             return ReserveConnection();
         }
@@ -43,21 +43,21 @@ namespace ZeyjaFramework
         /// Initializes a new connection.
         /// </summary>
         /// 
-        /// <param name="andReserve">if true the connection is created in <see cref="ReservedConnections"/>
-        ///     opposed to <see cref="AvailableConnections"/>.</param>
+        /// <param name="andReserve">if true the connection is created in <see cref="_reservedConnections"/>
+        ///     opposed to <see cref="_availableConnections"/>.</param>
         ///     
         /// <returns>A QueryFactory.</returns>
         private QueryFactory InitializeConnection(bool andReserve = false)
         {
-            if ((AvailableConnections.Count + ReservedConnections.Count) >= Config.MaxConnections)
+            if ((_availableConnections.Count + _reservedConnections.Count) >= _config.MaxConnections)
             {
                 throw new Exception("Reached max database connections.");
             }
 
-            QueryFactory newConn = new QueryFactory(new MySqlConnection(Config.GetConnectionString()), new MySqlCompiler());
+            QueryFactory newConn = new QueryFactory(new MySqlConnection(_config.GetConnectionString()), new MySqlCompiler());
 
-            if (andReserve) { ReservedConnections.Add(newConn); }
-            else { AvailableConnections.Add(newConn); }
+            if (andReserve) { _reservedConnections.Add(newConn); }
+            else { _availableConnections.Add(newConn); }
 
             return newConn;
         }
@@ -69,41 +69,41 @@ namespace ZeyjaFramework
         /// <returns>A QueryFactory.</returns>
         private QueryFactory ReserveConnection()
         {
-            if (!AvailableConnections.Any())
+            if (!_availableConnections.Any())
             {
                 CleanupConnections(); // TODO: Move to scheduled task, or better implementation
 
                 return InitializeConnection(true);
             }
 
-            QueryFactory newConn = AvailableConnections.First();
+            QueryFactory newConn = _availableConnections.First();
 
-            AvailableConnections.Remove(newConn);
-            ReservedConnections.Add(newConn);
+            _availableConnections.Remove(newConn);
+            _reservedConnections.Add(newConn);
 
             return newConn;
         }
 
         /// <summary>
-        /// Releases unused connections in <see cref="ReservedConnections"/> to <see cref="AvailableConnections"/> and 
+        /// Releases unused connections in <see cref="_reservedConnections"/> to <see cref="_availableConnections"/> and 
         ///     reopens any closed connections.
         /// </summary>
         private void CleanupConnections()
         {
-            foreach (QueryFactory conn in ReservedConnections)
+            foreach (QueryFactory conn in _reservedConnections)
             {
                 switch (conn.Connection.State)
                 {
                     case System.Data.ConnectionState.Closed:
                         conn.Connection.Open();
 
-                        ReservedConnections.Remove(conn);
-                        AvailableConnections.Add(conn);
+                        _reservedConnections.Remove(conn);
+                        _availableConnections.Add(conn);
                         break;
 
                     case System.Data.ConnectionState.Open:
-                        ReservedConnections.Remove(conn);
-                        AvailableConnections.Add(conn);
+                        _reservedConnections.Remove(conn);
+                        _availableConnections.Add(conn);
                         break;
 
                     case System.Data.ConnectionState.Connecting:
@@ -118,8 +118,8 @@ namespace ZeyjaFramework
                     case System.Data.ConnectionState.Broken:
                         conn.Connection.Open();
 
-                        ReservedConnections.Remove(conn);
-                        AvailableConnections.Add(conn);
+                        _reservedConnections.Remove(conn);
+                        _availableConnections.Add(conn);
                         break;
                 }
             }
