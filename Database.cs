@@ -5,13 +5,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ZeyjaFramework.Config;
+using ZeyjaFramework.Interfaces;
 
 namespace ZeyjaFramework
 {
     /// <summary>
     /// Handles everyday database interactions.
     /// </summary>
-    public class Database
+    public class Database : IDatabase
     {
         private readonly DatabaseConfig _config;
 
@@ -26,6 +27,8 @@ namespace ZeyjaFramework
         public Database(DatabaseConfig config = null)
         {
             _config = config;
+
+            InitializeConnection();
         }
 
         /// <summary>
