@@ -3,6 +3,7 @@ using SqlKata.Compilers;
 using SqlKata.Execution;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using ZeyjaFramework.Config;
 using ZeyjaFramework.Interfaces;
@@ -24,11 +25,14 @@ namespace ZeyjaFramework
         /// </summary>
         /// 
         /// <param name="config">The <see cref="DatabaseConfig"/>.</param>
-        public Database(DatabaseConfig config = null)
+        public Database(DatabaseConfig config)
         {
             _config = config;
 
-            InitializeConnection();
+            for (int i = 0; i < 10; i++)
+            {
+                InitializeConnection();
+            }
         }
 
         /// <summary>
@@ -57,7 +61,16 @@ namespace ZeyjaFramework
                 throw new Exception("Reached max database connections.");
             }
 
-            QueryFactory newConn = new QueryFactory(new MySqlConnection(_config.GetConnectionString()), new MySqlCompiler());
+            QueryFactory newConn = null;
+
+            try
+            {
+                newConn = new QueryFactory(new MySqlConnection(_config.GetConnectionString()), new MySqlCompiler());
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Unable to connect to database.", ex);
+            }
 
             if (andReserve) { _reservedConnections.Add(newConn); }
             else { _availableConnections.Add(newConn); }
@@ -81,6 +94,11 @@ namespace ZeyjaFramework
 
             QueryFactory newConn = _availableConnections.First();
 
+            if (newConn.Connection.State == ConnectionState.Closed)
+            {
+                newConn.Connection.Open();
+            }
+
             _availableConnections.Remove(newConn);
             _reservedConnections.Add(newConn);
 
@@ -97,28 +115,28 @@ namespace ZeyjaFramework
             {
                 switch (conn.Connection.State)
                 {
-                    case System.Data.ConnectionState.Closed:
+                    case ConnectionState.Closed:
                         conn.Connection.Open();
 
                         _reservedConnections.Remove(conn);
                         _availableConnections.Add(conn);
                         break;
 
-                    case System.Data.ConnectionState.Open:
+                    case ConnectionState.Open:
                         _reservedConnections.Remove(conn);
                         _availableConnections.Add(conn);
                         break;
 
-                    case System.Data.ConnectionState.Connecting:
+                    case ConnectionState.Connecting:
                         break;
 
-                    case System.Data.ConnectionState.Executing:
+                    case ConnectionState.Executing:
                         break;
 
-                    case System.Data.ConnectionState.Fetching:
+                    case ConnectionState.Fetching:
                         break;
 
-                    case System.Data.ConnectionState.Broken:
+                    case ConnectionState.Broken:
                         conn.Connection.Open();
 
                         _reservedConnections.Remove(conn);

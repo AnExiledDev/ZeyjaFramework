@@ -50,7 +50,7 @@
         /// <returns>The connection string.</returns>
         public string GetConnectionString()
         {
-            return $"Host={Server};Port={Port};User={Username};Password={Password};Database={DatabaseName}";
+            return $"Host={Server};Port={Port};User={Username};Password={Password};Database={DatabaseName};SslMode=None";
         }
     }
 }
